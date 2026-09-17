@@ -1,0 +1,183 @@
+/*
+========================================================================================
+STATS NZ LABOUR MARKET - POWER BI DAX MEASURES LIBRARY
+========================================================================================
+This script contains all essential DAX measures built for the Stats NZ Labour Market Data 
+Warehouse. It covers Core Aggregations, Time Intelligence (YoY Calculations), Dynamic Filter 
+Metrics, and Conditional Formatting Drivers.
+
+Copy and paste these formulas directly into Power BI Desktop:
+Modeling Tab -> New Measure
+========================================================================================
+*/
+
+
+// =====================================================================================
+// SECTION 1: CORE BASE AGGREGATIONS
+// =====================================================================================
+
+// 1. Total Data Value
+// Basic additive metric summing the underlying values in the Fact table.
+Total Data Value = 
+SUM(FactLabourMarket[DataValue])
+
+
+// 2. Average Data Value
+// Calculates the arithmetic mean across selected slices or series.
+Average Data Value = 
+AVERAGE(FactLabourMarket[DataValue])
+
+
+// 3. Total Observations Count
+// Tracks the total number of reporting rows/records currently selected in the view.
+Total Observations = 
+COUNTROWS(FactLabourMarket)
+
+
+// 4. Unique Series Count
+// Counts distinct economic metrics/series included in the current filter context.
+Active Series Count = 
+DISTINCTCOUNT(FactLabourMarket[SeriesKey])
+
+
+
+
+// =====================================================================================
+// SECTION 2: TIME INTELLIGENCE & YEAR-OVER-YEAR (YoY) METRICS
+// =====================================================================================
+
+// 5. Prior Year Data Value
+// Calculates the total value for the exact same period in the previous calendar year.
+Prior Year Data Value = 
+CALCULATE(
+    [Total Data Value],
+    SAMEPERIODLASTYEAR(DimDate[FullDate])
+)
+
+
+// 6. Year-over-Year (YoY) Growth Amount
+// Absolute dollar/unit change compared to the previous year.
+YoY Growth Amount = 
+VAR CurrentValue = [Total Data Value]
+VAR PreviousValue = [Prior Year Data Value]
+RETURN
+    IF(
+        NOT ISBLANK(CurrentValue) && NOT ISBLANK(PreviousValue),
+        CurrentValue - PreviousValue,
+        BLANK()
+    )
+
+
+// 7. Year-over-Year (YoY) Growth Percentage
+// Relative percentage increase or decrease compared to the previous year.
+YoY Growth % = 
+VAR CurrentValue = [Total Data Value]
+VAR PreviousValue = [Prior Year Data Value]
+RETURN
+    DIVIDE(
+        CurrentValue - PreviousValue,
+        PreviousValue,
+        BLANK()
+    )
+
+
+// 8. Quarter-over-Quarter (QoQ) Growth Percentage
+// Shifts filter context back by 1 quarter to track sequential quarterly momentum.
+QoQ Growth % = 
+VAR CurrentValue = [Total Data Value]
+VAR PreviousQuarterValue = 
+    CALCULATE(
+        [Total Data Value],
+        DATEADD(DimDate[FullDate], -1, QUARTER)
+    )
+RETURN
+    DIVIDE(
+        CurrentValue - PreviousQuarterValue,
+        PreviousQuarterValue,
+        BLANK()
+    )
+
+
+
+
+// =====================================================================================
+// SECTION 3: DATASET-SPECIFIC CONTEXTUAL MEASURES
+// =====================================================================================
+
+// 9. Household Labour Force Survey (HLFS) - Unemployment Metric
+// Isolates HLFS records specifically for unemployment rate metrics.
+HLFS Unemployment Rate = 
+CALCULATE(
+    [Average Data Value],
+    DimDataset[DatasetCode] = "HLFS",
+    DimGroup[Group] == "Unemployment Rates"
+)
+
+
+// 10. Quarterly Employment Survey (QES) - Average Hourly Earnings
+// Filters QES metrics for average hourly pay aggregations.
+QES Avg Hourly Earnings = 
+CALCULATE(
+    [Average Data Value],
+    DimDataset[DatasetCode] = "QES",
+    DimSeries[Title1] UNICHAR(61) "Average Hourly Earnings"
+)
+
+
+// 11. Monthly Employment Indicators (MEI) - Gross Earnings Total
+// Sums total earnings reported through monthly payroll indicators.
+MEI Gross Earnings = 
+CALCULATE(
+    [Total Data Value],
+    DimDataset[DatasetCode] = "MEI",
+    DimUnitStatus[Units] = "Dollars"
+)
+
+
+
+
+// =====================================================================================
+// SECTION 4: KPI CARD HEADERS & DYNAMIC REPORTING TITLES
+// =====================================================================================
+
+// 12. Dynamic KPI Card Subtitle
+// Generates a text string indicating current date range context for dashboards.
+Selected Date Range Context = 
+VAR MinDate = MIN(DimDate[FullDate])
+VAR MaxDate = MAX(DimDate[FullDate])
+RETURN
+    "Selected Period: " & FORMAT(MinDate, "MMM YYYY") & " - " & FORMAT(MaxDate, "MMM YYYY")
+
+
+// 13. Dynamic KPI Growth Status Text
+// Text summary for visual callout cards indicating direction of metric change.
+YoY Performance Status = 
+VAR Growth = [YoY Growth %]
+RETURN
+    SWITCH(
+        TRUE(),
+        ISBLANK(Growth), "No Prior Benchmark",
+        Growth > 0, "▲ Increasing (+ " & FORMAT(Growth, "0.0%") & ")",
+        Growth < 0, "▼ Decreasing (" & FORMAT(Growth, "0.0%") & ")",
+        "► Stable (0.0%)"
+    )
+
+
+
+
+// =====================================================================================
+// SECTION 5: CONDITIONAL FORMATTING DRIVERS (FOR TABLES & VISUALS)
+// =====================================================================================
+
+// 14. YoY Conditional Formatting Color Code
+// Returns hex codes to apply dynamic green/red background or text colors in visuals.
+YoY Color Code = 
+VAR Growth = [YoY Growth %]
+RETURN
+    SWITCH(
+        TRUE(),
+        ISBLANK(Growth), "#808080", // Gray (No Data)
+        Growth > 0, "#107C41",      // Green (Positive Movement)
+        Growth < 0, "#A80000",      // Red (Negative Movement)
+        "#000000"                   // Black (Neutral)
+    )
