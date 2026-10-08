@@ -1,0 +1,145 @@
+# STATS NZ LABOUR MARKET DATA WAREHOUSE AND REPORTING SOLUTION
+
+## 1. PROJECT OVERVIEW
+This project establishes an end-to-end Business Intelligence and Data Engineering pipeline built on Stats NZ Labour Market public datasets. The project cleans raw source files, handles schema modeling, automates Data Flow and ETL execution via SQL Server Integration Services (SSIS), and builds an executive report using SQL Server Reporting Services (SSRS).
+
+---
+
+## 2. ARCHITECTURE AND WORKFLOW SUMMARY
+1. Database Architecture Setup: Executed DDL scripts to establish Staging and Star Schema DW structures in SQL Server.
+2. Data Extraction and Transformation (SSIS): Created Package.dtsx to parse raw source files, cast data types, perform dimension key lookups, and load clean data into target tables.
+3. Enterprise Reporting (SSRS): Created LabourMarket_Report.rdl bound to the Data Warehouse instance to present metrics by Dataset, Year, Quarter, and Group.
+
+---
+
+## 3. DATA MODELING AND DATABASE DESIGN
+
+### 3.1 Raw Source Datasets Processed
+* HLFS: Household Labour Force Survey (Employment, Unemployment, Labour Force Status)
+* MEI: Monthly Employment Indicators (Industry-level employment indices)
+* LCI: Labour Cost Index (Salary and wage rate movements)
+* QES: Quarterly Employment Survey (Filled jobs and earnings)
+* LMS: Labour Market Statistics
+
+### 3.2 Target Schema Design (Star Schema)
+To optimize reporting performance and eliminate storage redundancy across 2.9M+ records, the warehouse was modeled into a Star Schema:
+
+#### Fact Table
+* FactLabourMarket
+  * FactID (Primary Key, Identity)
+  * DatasetKey (Foreign Key -> DimDataset)
+  * SeriesKey (Foreign Key -> DimSeries)
+  * GroupKey (Foreign Key -> DimGroup)
+  * UnitStatusKey (Foreign Key -> DimUnitStatus)
+  * DateKey (Foreign Key -> DimDate)
+  * DataValue (Numeric Float, Clean Metric Value)
+
+#### Dimension Tables
+* DimDataset: Stores DatasetCode (e.g., HLFS, MEI) and DatasetName.
+* DimSeries: Stores SeriesReference identifier and detailed description.
+* DimGroup: Stores functional grouping titles (e.g., High-level industry by variable).
+* DimUnitStatus: Stores unit metrics (e.g., Index, Thousands, Percentage).
+* DimDate: Stores DateKey, Year, Quarter, QuarterName (e.g., Q1 1999), and Month.
+
+---
+
+## 4. SQL DDL SCRIPTS AND DATABASE CREATION
+
+### 4.1 Database Setup Script (01_LaborDatabaseCreation.sql)
+This script creates the database StatsNZ_LabourMarket_DW and builds the staging tables alongside the dimensional star schema.
+
+* Staging Layer: Holds raw incoming string records directly from source files prior to transformation.
+* Warehouse Layer: Contains primary key/foreign key constraints, default constraints, and indexed surrogate key columns.
+
+### 4.2 Date Dimension Population Script (02_STATSDIMDATE.sql)
+Populates DimDate dynamically from 1980 to 2030, generating quarters, financial years, and QuarterName strings required for SSRS grouping.
+
+### 4.3 Idempotent Cleanup Script (DELETEALLRECORDS.sql)
+Clears table contents cleanly without dropping structural constraints, allowing repeatable pipeline execution during testing.
+
+---
+
+## 5. ETL PIPELINE DESIGN (SSIS)
+
+### 5.1 SSIS Project Configuration
+* Project Name: StatsNZ_SSIS_ETL
+* Package File: Package.dtsx
+* Target Server: SQL Server (Instance: PRATEEK\IC)
+* Authentication Mode: Windows Authentication / SQL Server sa
+
+### 5.2 Control Flow Tasks
+1. Execute SQL Task - Truncate Staging Tables: Ensures previous run data is removed before new extraction.
+2. Data Flow Task - Extract and Load Raw Data: Reads raw datasets into the staging database.
+3. Data Flow Task - Dim Lookups and Load Fact Table: Maps dimension surrogate keys and populates FactLabourMarket.
+
+### 5.3 Data Flow Transformations Applied
+* Data Conversion Transformation:
+  * Converted raw text fields from string types (DT_STR / DT_WSTR) to double-precision floats (DT_R8) for DataValue.
+  * Handled NULL string values and missing records safely to avoid pipeline failures.
+* Lookup Transformations:
+  * Looked up DatasetCode against DimDataset to retrieve DatasetKey.
+  * Looked up SeriesReference against DimSeries to retrieve SeriesKey.
+  * Looked up Group against DimGroup to retrieve GroupKey.
+* Derived Column Transformation:
+  * Parsed Quarter and Year strings to generate standardized DateKey integers (e.g., 1999Q1 -> 19990331).
+
+---
+
+## 6. ENTERPRISE REPORTING (SSRS)
+
+### 6.1 Report Configuration
+* Project Name: StatsNZ_SSRS_Reports
+* Report File: LabourMarket_Report.rdl
+* Shared Data Source: StatsNZ_LabourMarket_DW
+
+### 6.2 Report Query
+The dataset Dataset1 executes a T-SQL query joining FactLabourMarket with DimDataset, DimSeries, DimGroup, and DimDate to output:
+* DatasetCode
+* DatasetName
+* Year
+* QuarterName
+* Group
+* DataValue
+
+### 6.3 Design and Formatting Applied
+* Flat Detail Row Design: Configured a single detail group (=Details) so each dataset record renders continuously line-by-line without stair-step indents.
+* Data Value Binding: Set cell expressions explicitly to =Fields!DataValue.Value to output true numeric metrics.
+* Header Shading: Applied dark header background color (#80C4E9) with bold contrasting text for visual hierarchy.
+* Column Alignment: Expanded column widths for Dataset Name, Quarter Name, and Group to prevent text clipping.
+
+---
+
+## 7. REPOSITORY FILE STRUCTURE AND GIT SECURITY
+
+### 7.1 Shared Repository Structure
+
+03_SSIS_SSRS/
+├── 01_LaborDatabaseCreation.sql
+├── 02_STATSDIMDATE.sql
+├── DELETEALLRECORDS.sql
+├── SSIS/
+│   ├── StatsNZ_SSIS_ETL.sln
+│   ├── StatsNZ_SSIS_ETL.dtproj
+│   ├── Package.dtsx
+│   └── Project.params
+└── SSRS/
+    ├── StatsNZ_SSRS_Reports.sln
+    ├── StatsNZ_SSRS_Reports.rptproj
+    ├── LabourMarket_Report.rdl
+    └── images/
+        ├── ssis_pipeline_preview.png
+        └── ssrs_report_preview.png
+
+### 7.2 Security and Confidentiality Measures
+To protect system credentials and prevent repository bloat, the following files are excluded via .gitignore:
+* Machine/User Preference Files (*.user, *.rsuser): Excluded because they store local computer user paths and login information.
+* Compiled Output Directories (bin/, obj/): Excluded temporary deployment binaries.
+* Local Report Cache (*.rdl.data): Excluded cached query binary files (400 MB+) to ensure no raw data is committed to GitHub and to maintain repository size limits.
+
+---
+
+## 8. REPLICATION GUIDANCE
+
+1. Open SSMS and execute 01_LaborDatabaseCreation.sql followed by 02_STATSDIMDATE.sql to create the database schema.
+2. Open SSIS/StatsNZ_SSIS_ETL.sln in Visual Studio, update connection manager strings to your SQL Server instance, and run Package.dtsx.
+3. Open SSRS/StatsNZ_SSRS_Reports.sln in Visual Studio, verify the target data source connection, and click the Preview tab to run the report.

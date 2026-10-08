@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37628.2 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F14B399A-7131-4C87-9E4B-1186C45EF12D}") = "StatsNZ_SSRS_Reports", "StatsNZ_SSRS_Reports\StatsNZ_SSRS_Reports.rptproj", "{D7244ADD-43C1-A33B-4EBB-BAC887003519}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Default = Debug|Default
+		DebugLocal|Default = DebugLocal|Default
+		Release|Default = Release|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D7244ADD-43C1-A33B-4EBB-BAC887003519}.Debug|Default.ActiveCfg = Debug
+		{D7244ADD-43C1-A33B-4EBB-BAC887003519}.Debug|Default.Build.0 = Debug
+		{D7244ADD-43C1-A33B-4EBB-BAC887003519}.Debug|Default.Deploy.0 = Debug
+		{D7244ADD-43C1-A33B-4EBB-BAC887003519}.DebugLocal|Default.ActiveCfg = DebugLocal
+		{D7244ADD-43C1-A33B-4EBB-BAC887003519}.DebugLocal|Default.Build.0 = DebugLocal
+		{D7244ADD-43C1-A33B-4EBB-BAC887003519}.Release|Default.ActiveCfg = Release
+		{D7244ADD-43C1-A33B-4EBB-BAC887003519}.Release|Default.Build.0 = Release
+		{D7244ADD-43C1-A33B-4EBB-BAC887003519}.Release|Default.Deploy.0 = Release
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DAB2F61C-BB5B-4CA9-9F63-60162097B172}
+	EndGlobalSection
+EndGlobal

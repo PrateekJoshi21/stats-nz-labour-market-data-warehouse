@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37628.2 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{C9674DCB-5085-4A16-B785-4C70DD1589BD}") = "StatsNZ_SSIS_ETL", "StatsNZ_SSIS_ETL\StatsNZ_SSIS_ETL.dtproj", "{E1BFAFD0-148B-0ED7-43B5-5777D98CC47E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Development|Default = Development|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E1BFAFD0-148B-0ED7-43B5-5777D98CC47E}.Development|Default.ActiveCfg = Development
+		{E1BFAFD0-148B-0ED7-43B5-5777D98CC47E}.Development|Default.Build.0 = Development
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6E837CC5-DF03-42A2-A88A-A6BAD263F7C8}
+	EndGlobalSection
+EndGlobal
